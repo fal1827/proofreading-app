@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 自動校閲Webアプリ
 
-## Getting Started
+Web編集者・ライター向けの自動校閲ツールです。テキストの「表記ゆれ」「禁止ワード」「文末の単調さ」を自動でチェックし、修正案をワンクリックで適用できます。
 
-First, run the development server:
+すべての処理はブラウザ上で完結し、テキストが外部に送信されることはありません。
+
+## ✨ 主な機能
+
+| 機能 | 説明 |
+|---|---|
+| **禁止ワード検出** | 「ございます」「思われます」など、指定したNGワードを検出 |
+| **文末連続チェック** | 「〜ます。〜ます。〜ます。」のような文末の3回以上の連続を検出 |
+| **表記ゆれチェック** | 「コンピュータ」→「コンピューター」など、表記の不統一を検出 |
+| **ワンクリック置換** | 表記ゆれの修正案を「適用」ボタンで即時反映 |
+| **結果フィルタリング** | 禁止ワード / 文末連続 / 表記ゆれ のカテゴリで絞り込み |
+| **文字数カウント** | 総文字数・空白除外文字数をリアルタイム表示 |
+| **キーボードショートカット** | `Ctrl+Enter` でチェック、`Escape` で編集に戻る |
+| **ルールのカスタマイズ** | 禁止ワード・表記ゆれルールの追加/削除/インポート |
+| **設定の自動保存** | カスタムルールはブラウザに自動保存 |
+
+## 🛠 技術スタック
+
+- **フレームワーク**: Next.js (App Router)
+- **UI**: Material UI (MUI)
+- **アニメーション**: Framer Motion
+- **言語**: TypeScript
+- **テスト**: Jest + ts-jest
+
+## 🚀 ローカル開発
 
 ```bash
+# インストール
+npm install
+
+# 開発サーバー起動
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# テスト実行
+npx jest --verbose
+
+# 静的ビルド（デプロイ用）
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+開発サーバー起動後、http://localhost:3000 でアクセスできます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📖 使い方
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 基本の流れ
 
-## Learn More
+1. **テキストを入力** — 入力エリアにチェックしたいテキストを貼り付け
+2. **チェック実行** — 「✓ チェック実行」ボタン（または `Ctrl+Enter`）
+3. **結果を確認** — 左側にハイライト表示、右側に指摘一覧
 
-To learn more about Next.js, take a look at the following resources:
+### チェック結果の見方
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+チェック実行後、画面が左右に分かれます。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **左パネル**: テキスト内の指摘箇所が黄色くハイライトされます。クリックすると右パネルの該当項目にスクロールします。
+- **右パネル**: 指摘内容の一覧です。上部のフィルタチップでカテゴリ絞り込みができます。
 
-## Deploy on Vercel
+### ワンクリック置換
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+表記ゆれの指摘には「✨ 適用」ボタンが付いています。クリックすると、テキストが自動的に修正され、チェック結果も再計算されます。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 設定のカスタマイズ
+
+右上の ⚙ アイコンから設定画面を開けます。
+
+- **禁止ワード**: 任意のNGワードを追加・削除
+- **表記ゆれルール**: NG表記と正しい表記のペアを追加・削除
+- **インポート**: Excelファイルやスプレッドシートからルールを一括インポート
+
+設定はブラウザの localStorage に自動保存されます。
+
+## 📁 プロジェクト構成
+
+```
+app/
+├── layout.tsx          # ルートレイアウト
+├── page.tsx            # メインページ
+└── globals.css         # グローバルCSS
+components/Proofreader/
+├── HighlightedView.tsx # ハイライト表示
+├── InputArea.tsx       # テキスト入力エリア
+├── ResultList.tsx      # チェック結果一覧
+└── SettingsDialog.tsx  # 設定ダイアログ
+lib/
+└── proofreadingLogic.ts # 校閲ロジック
+theme/
+├── theme.ts            # MUIテーマ設定
+└── ThemeRegistry.tsx   # テーマプロバイダー
+__tests__/
+└── proofreadingLogic.test.ts # ユニットテスト
+```
+
+## 📄 ライセンス
+
+MIT
