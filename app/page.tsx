@@ -7,10 +7,12 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import UndoIcon from '@mui/icons-material/Undo';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import InputArea from '@/components/Proofreader/InputArea';
 import ResultList from '@/components/Proofreader/ResultList';
 import HighlightedView from '@/components/Proofreader/HighlightedView';
 import SettingsDialog from '@/components/Proofreader/SettingsDialog';
+import HelpDialog from '@/components/Proofreader/HelpDialog';
 import { analyzeText, getCharacterCount, getCharacterCountNoSpaces, ProofreadingResult, ProofreadingSettings, DEFAULT_SETTINGS } from '@/lib/proofreadingLogic';
 
 export default function Home() {
@@ -25,6 +27,7 @@ export default function Home() {
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
   const [isEditable, setIsEditable] = useState(false);
   const [undoSnackbarOpen, setUndoSnackbarOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -165,6 +168,11 @@ export default function Home() {
             </Typography>
         </Box>
         <Box display="flex" alignItems="center" gap={1}>
+            <Tooltip title="使い方・機能説明">
+                <IconButton size="small" onClick={() => setHelpOpen(true)} sx={{ color: '#64748b' }}>
+                    <HelpOutlineIcon />
+                </IconButton>
+            </Tooltip>
             <Button
                 variant="text"
                 color="inherit"
@@ -292,6 +300,8 @@ export default function Home() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         sx={{ bottom: { xs: 90, sm: 24 } }}
       />
+
+      <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
 
       <SettingsDialog
         open={settingsOpen}
