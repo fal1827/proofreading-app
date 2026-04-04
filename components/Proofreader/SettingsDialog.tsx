@@ -33,6 +33,13 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import SaveIcon from '@mui/icons-material/Save';
+import SearchIcon from '@mui/icons-material/Search';
+import InputAdornment from '@mui/material/InputAdornment';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import ContentPasteIcon from '@mui/icons-material/ContentPaste';
+import FileCopyIcon from '@mui/icons-material/FileCopy';
 
 interface SettingsDialogProps {
     open: boolean;
@@ -73,16 +80,33 @@ export default function SettingsDialog({ open, onClose, settings, onSave }: Sett
     const [newIncorrect, setNewIncorrect] = useState('');
     const [newCorrect, setNewCorrect] = useState('');
     const [newNote, setNewNote] = useState('');
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [sheetUrl, setSheetUrl] = useState('');
     const [importLoading, setImportLoading] = useState(false);
     const [importError, setImportError] = useState<string | null>(null);
     const [importSuccess, setImportSuccess] = useState<string | null>(null);
+    
+    // Additional state for new features
+    const [forbiddenSearch, setForbiddenSearch] = useState('');
+    const [ruleSearch, setRuleSearch] = useState('');
+    const [presets, setPresets] = useState<{name: string, settings: ProofreadingSettings}[]>([]);
+    const [newPresetName, setNewPresetName] = useState('');
 
     useEffect(() => {
         if (open) {
             setLocalSettings(settings);
             setImportError(null);
             setImportSuccess(null);
+            
+            // Load presets from localStorage
+            const savedPresets = localStorage.getItem('proofreadingPresets');
+            if (savedPresets) {
+                try {
+                    setPresets(JSON.parse(savedPresets));
+                } catch (e) {
+                    console.error('Failed to parse presets', e);
+                }
+            }
         }
     }, [open, settings]);
 
@@ -255,17 +279,65 @@ export default function SettingsDialog({ open, onClose, settings, onSave }: Sett
         reader.readAsBinaryString(file);
     };
 
+    const handleSavePreset = () => {
+        if (!newPresetName.trim()) return;
+        const newPresets = [...presets, { name: newPresetName.trim(), settings: localSettings }];
+        setPresets(newPresets);
+        localStorage.setItem('proofreadingPresets', JSON.stringify(newPresets));
+        setNewPresetName('');
+        setImportSuccess(`プリセット「${newPresetName}」を保存しました。`);
+    };
+
+    const handleLoadPreset = (preset: {name: string, settings: ProofreadingSettings}) => {
+        setLocalSettings(preset.settings);
+        setImportSuccess(`プリセット「${preset.name}」を読み込みました。`);
+    };
+
+    const handleDeletePreset = (index: number) => {
+        const newPresets = presets.filter((_, i) => i !== index);
+        setPresets(newPresets);
+        localStorage.setItem('proofreadingPresets', JSON.stringify(newPresets));
+    };
+
+    const filteredForbiddenWords = localSettings.forbiddenWords.filter(word => 
+        word.toLowerCase().includes(forbiddenSearch.toLowerCase())
+    );
+
+    const filteredRules = localSettings.inconsistencyRules.filter(rule => 
+        rule.incorrect.toLowerCase().includes(ruleSearch.toLowerCase()) || 
+        rule.correct.toLowerCase().includes(ruleSearch.toLowerCase()) ||
+        (rule.note && rule.note.toLowerCase().includes(ruleSearch.toLowerCase()))
+    );
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
             <DialogTitle>校閲設定</DialogTitle>
             <DialogContent dividers>
-                <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
+                <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs" variant="scrollable" scrollButtons="auto">
+                    <Tab label="全般" />
                     <Tab label="禁止ワード" />
                     <Tab label="表記ゆれ" />
+                    <Tab label="プリセット" />
                     <Tab label="インポート" />
                 </Tabs>
 
                 <TabPanel value={tabValue} index={0}>
+                    <Typography variant="h6" gutterBottom>基本動作</Typography>
+                    <FormControlLabel
+                        control={
+                            <Switch 
+                                checked={localSettings.enableDynamicCheck !== false} 
+                                onChange={(e) => setLocalSettings(prev => ({ ...prev, enableDynamicCheck: e.target.checked }))} 
+                            />
+                        }
+                        label="辞書なしの動的表記ゆれ検知を有効にする"
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                        同じ文章の中に「コンピュータ」と「コンピューター」が混在している場合など、ルールに登録していなくても自動で検知します。
+                    </Typography>
+                </TabPanel>
+
+                <TabPanel value={tabValue} index={1}>
                     <Box display="flex" gap={1} mb={2}>
                         <TextField
                             fullWidth
@@ -278,28 +350,46 @@ export default function SettingsDialog({ open, onClose, settings, onSave }: Sett
                             追加
                         </Button>
                     </Box>
+                    <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="禁止ワードを検索..."
+                        value={forbiddenSearch}
+                        onChange={(e) => setForbiddenSearch(e.target.value)}
+                        sx={{ mb: 2 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
                     <Box display="flex" justifyContent="flex-end" mb={1}>
                         <Button size="small" color="error" onClick={handleClearForbiddenWords}>
-                            禁止ワードを全削除
+                            表示中のワードを全削除
                         </Button>
                     </Box>
-                    <List dense>
-                        {localSettings.forbiddenWords.map((word, index) => (
-                            <ListItem
-                                key={index}
-                                secondaryAction={
-                                    <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteForbiddenWord(index)}>
-                                        <DeleteIcon />
-                                    </IconButton>
-                                }
-                            >
-                                <ListItemText primary={word} />
-                            </ListItem>
-                        ))}
+                    <List dense sx={{ maxHeight: 300, overflow: 'auto' }}>
+                        {filteredForbiddenWords.map((word, index) => {
+                            const originalIndex = localSettings.forbiddenWords.indexOf(word);
+                            return (
+                                <ListItem
+                                    key={index}
+                                    secondaryAction={
+                                        <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteForbiddenWord(originalIndex)}>
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    }
+                                >
+                                    <ListItemText primary={word} />
+                                </ListItem>
+                            );
+                        })}
                     </List>
                 </TabPanel>
 
-                <TabPanel value={tabValue} index={1}>
+                <TabPanel value={tabValue} index={2}>
                     <Box display="flex" gap={1} mb={2}>
                         <TextField
                             size="small"
@@ -326,9 +416,24 @@ export default function SettingsDialog({ open, onClose, settings, onSave }: Sett
                             追加
                         </Button>
                     </Box>
+                    <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="ルールを検索..."
+                        value={ruleSearch}
+                        onChange={(e) => setRuleSearch(e.target.value)}
+                        sx={{ mb: 2 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
                     <Box display="flex" justifyContent="flex-end" mb={1}>
                         <Button size="small" color="error" onClick={handleClearInconsistencyRules}>
-                            表記ゆれルールを全削除
+                            表示中のルールを全削除
                         </Button>
                     </Box>
                     <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
@@ -342,24 +447,73 @@ export default function SettingsDialog({ open, onClose, settings, onSave }: Sett
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {localSettings.inconsistencyRules.map((rule, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell>{rule.incorrect}</TableCell>
-                                        <TableCell>{rule.correct}</TableCell>
-                                        <TableCell>{rule.note}</TableCell>
-                                        <TableCell align="right">
-                                            <IconButton size="small" onClick={() => handleDeleteInconsistencyRule(index)}>
-                                                <DeleteIcon fontSize="small" />
-                                            </IconButton>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                {filteredRules.map((rule, idx) => {
+                                    const originalIndex = localSettings.inconsistencyRules.indexOf(rule);
+                                    return (
+                                        <TableRow key={idx}>
+                                            <TableCell>{rule.incorrect}</TableCell>
+                                            <TableCell>{rule.correct}</TableCell>
+                                            <TableCell>{rule.note}</TableCell>
+                                            <TableCell align="right">
+                                                <IconButton size="small" onClick={() => handleDeleteInconsistencyRule(originalIndex)}>
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
                             </TableBody>
                         </Table>
                     </TableContainer>
                 </TabPanel>
 
-                <TabPanel value={tabValue} index={2}>
+                <TabPanel value={tabValue} index={3}>
+                    <Typography variant="subtitle1" gutterBottom fontWeight="bold">今の設定を保存</Typography>
+                    <Box display="flex" gap={1} mb={4}>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            label="プリセット名"
+                            placeholder="例：ビジネス用、ブログ用"
+                            value={newPresetName}
+                            onChange={(e) => setNewPresetName(e.target.value)}
+                        />
+                        <Button variant="contained" color="secondary" onClick={handleSavePreset} startIcon={<SaveIcon />}>
+                            保存
+                        </Button>
+                    </Box>
+
+                    <Typography variant="subtitle1" gutterBottom fontWeight="bold">保存済みプリセット</Typography>
+                    {presets.length === 0 ? (
+                        <Typography variant="body2" color="text.secondary">保存されたプリセットはありません。</Typography>
+                    ) : (
+                        <List>
+                            {presets.map((preset, index) => (
+                                <ListItem
+                                    key={index}
+                                    divider
+                                    secondaryAction={
+                                        <Box>
+                                            <Button size="small" startIcon={<ContentPasteIcon />} onClick={() => handleLoadPreset(preset)} sx={{ mr: 1 }}>
+                                                読み込み
+                                            </Button>
+                                            <IconButton edge="end" onClick={() => handleDeletePreset(index)}>
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </Box>
+                                    }
+                                >
+                                    <ListItemText 
+                                        primary={preset.name} 
+                                        secondary={`禁止ワード: ${preset.settings.forbiddenWords.length}件 / 表記ゆれ: ${preset.settings.inconsistencyRules.length}件`} 
+                                    />
+                                </ListItem>
+                            ))}
+                        </List>
+                    )}
+                </TabPanel>
+
+                <TabPanel value={tabValue} index={4}>
                     <Typography variant="subtitle1" gutterBottom fontWeight="bold">
                         Googleスプレッドシートから読み込み
                     </Typography>

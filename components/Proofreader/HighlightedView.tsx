@@ -60,18 +60,30 @@ export default function HighlightedView({ text, results, selectedResultId, onSel
         });
     }
 
+    // Effect to scroll to the selected result when it changes from the outside (Results List)
+    React.useEffect(() => {
+        if (selectedResultId) {
+            const element = document.getElementById(`highlight-${selectedResultId}`);
+            if (element) {
+                element.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+            }
+        }
+    }, [selectedResultId]);
+
     return (
         <Box
             sx={{
                 p: 3,
                 bgcolor: '#fff',
-                borderRadius: 1,
-                boxShadow: 1,
-                minHeight: '400px',
+                minHeight: '100%',
                 lineHeight: 1.8,
                 whiteSpace: 'pre-wrap',
                 fontFamily: '"Noto Sans JP", sans-serif',
-                fontSize: '1.1rem'
+                fontSize: '1.05rem',
+                color: '#1e293b'
             }}
         >
             {segments.map((segment, i) => {
@@ -80,6 +92,7 @@ export default function HighlightedView({ text, results, selectedResultId, onSel
                     return (
                         <Typography
                             key={i}
+                            id={segment.id ? `highlight-${segment.id}` : undefined}
                             component="span"
                             onClick={() => segment.id && onSelectResult(segment.id)}
                             sx={{

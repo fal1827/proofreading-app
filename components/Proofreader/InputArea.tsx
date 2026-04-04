@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { TextField, Paper, Typography } from '@mui/material';
+import { TextField, Box } from '@mui/material';
 
 interface InputAreaProps {
     text: string;
@@ -10,20 +10,29 @@ interface InputAreaProps {
 
 export default function InputArea({ text, setText }: InputAreaProps) {
     return (
-        <Paper elevation={3} sx={{ p: 3, mb: 4, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h6" gutterBottom color="primary">
-                原稿入力
-            </Typography>
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3, flexGrow: 1 }}>
             <TextField
                 fullWidth
                 multiline
-                minRows={10}
-                placeholder="ここに原稿を貼り付けてください"
+                placeholder="ここにチェックしたい文章を貼り付けて、下部の「✨ 校閲を実行する」ボタンを押してください。"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                variant="outlined"
-                sx={{ mb: 0, bgcolor: '#fafafa', flexGrow: 1, '& .MuiInputBase-root': { height: '100%', alignItems: 'flex-start' } }}
+                variant="standard"
+                InputProps={{ 
+                    disableUnderline: true,
+                }}
+                sx={{ 
+                    flexGrow: 1, 
+                    height: '100%',
+                    '& .MuiInputBase-root': { 
+                        height: '100%', 
+                        alignItems: 'flex-start',
+                        fontSize: '1.05rem',
+                        lineHeight: 1.8,
+                        color: '#1e293b'
+                    }
+                }}
             />
-        </Paper>
+        </Box>
     );
 }

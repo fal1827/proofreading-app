@@ -1,3 +1,5 @@
+import { defaultInconsistencyRules } from './defaultRules';
+
 export type ProofreadingResult = {
     id: string;
     type: 'warning' | 'error' | 'info';
@@ -12,19 +14,13 @@ export type ProofreadingResult = {
 export interface ProofreadingSettings {
     forbiddenWords: string[];
     inconsistencyRules: { incorrect: string; correct: string; note?: string }[];
+    enableDynamicCheck?: boolean; // 新規：辞書なしの動的検知を有効にするか
 }
 
 export const DEFAULT_SETTINGS: ProofreadingSettings = {
     forbiddenWords: ['ございます', '思われます', '！？'],
-    inconsistencyRules: [
-        { incorrect: 'コンピュータ', correct: 'コンピューター', note: 'JIS規格準拠' },
-        { incorrect: 'ブラウザ', correct: 'ブラウザー' },
-        { incorrect: 'プリンタ', correct: 'プリンター' },
-        { incorrect: 'ユーザ', correct: 'ユーザー' },
-        { incorrect: 'サーバ', correct: 'サーバー' },
-        { incorrect: 'メモリ', correct: 'メモリー' },
-        { incorrect: 'エディタ', correct: 'エディター' },
-    ]
+    inconsistencyRules: defaultInconsistencyRules,
+    enableDynamicCheck: true
 };
 
 export function analyzeText(text: string, settings: ProofreadingSettings = DEFAULT_SETTINGS): ProofreadingResult[] {
@@ -158,6 +154,48 @@ export function analyzeText(text: string, settings: ProofreadingSettings = DEFAU
             }
         }
     });
+
+    // 4. Dynamic Inconsistency Check (Discovery without preset rules)
+    if (settings.enableDynamicCheck !== false) {
+        // Extract all Katakana words (2+ characters)
+        const katakanaRegex = /[ァ-ヶー]{2,}/g;
+        const katakanaMatches: { word: string; index: number }[] = [];
+        let kMatch;
+        while ((kMatch = katakanaRegex.exec(text)) !== null) {
+            katakanaMatches.push({ word: kMatch[0], index: kMatch.index });
+        }
+
+        // Group by normalized form (remove trailing long vowel 'ー')
+        const groups: Map<string, Set<string>> = new Map();
+        katakanaMatches.forEach(m => {
+            const normalized = m.word.replace(/ー$/, '');
+            if (!groups.has(normalized)) groups.set(normalized, new Set());
+            groups.get(normalized)!.add(m.word);
+        });
+
+        // Find groups with multiple variations
+        groups.forEach((variations, normalized) => {
+            if (variations.size > 1) {
+                // We found an inconsistency! (e.g., both "ユーザ" and "ユーザー" exist)
+                // Report all occurrences
+                const variationList = Array.from(variations).join('、');
+                katakanaMatches.forEach(m => {
+                    if (variations.has(m.word)) {
+                        results.push({
+                            id: `dynamic-${m.index}-${m.word}`,
+                            type: 'info', // Use 'info' for dynamic discoveries
+                            message: `表記ゆれが混在しています：${variationList}`,
+                            suggestion: Array.from(variations).find(v => v !== m.word), // Suggest the other one
+                            context: text.substring(Math.max(0, m.index - 10), Math.min(text.length, m.index + m.word.length + 10)),
+                            index: m.index,
+                            length: m.word.length,
+                            note: '同一文書内で表記を統一することを推奨します'
+                        });
+                    }
+                });
+            }
+        });
+    }
 
     return results;
 }

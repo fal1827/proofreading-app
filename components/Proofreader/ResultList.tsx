@@ -61,7 +61,7 @@ export default function ResultList({ results, selectedResultId, onSelectResult, 
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                <Alert severity="success" sx={{ mt: 2 }}>
+                <Alert severity="success" sx={{ mt: 2, borderRadius: 2 }}>
                     問題は見つかりませんでした。素晴らしい記事です！
                 </Alert>
             </motion.div>
@@ -69,8 +69,8 @@ export default function ResultList({ results, selectedResultId, onSelectResult, 
     }
 
     return (
-        <Paper elevation={3} sx={{ p: 2, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h6" gutterBottom color="primary" sx={{ px: 1 }}>
+        <Paper elevation={0} sx={{ p: 2, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid #e2e8f0', borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom sx={{ px: 1, fontWeight: 'bold', color: '#1e293b' }}>
                 チェック結果 ({results.length}件)
             </Typography>
             <Stack direction="row" spacing={0.5} sx={{ mb: 1, px: 1, flexWrap: 'wrap', gap: 0.5 }}>
@@ -174,14 +174,15 @@ export default function ResultList({ results, selectedResultId, onSelectResult, 
                                                             {onApplySuggestion && result.id.startsWith('inconsistency') && (
                                                                 <Button
                                                                     size="small"
-                                                                    variant="outlined"
+                                                                    variant="contained"
                                                                     color="primary"
+                                                                    disableElevation
                                                                     startIcon={<AutoFixHighIcon />}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         onApplySuggestion(result.id);
                                                                     }}
-                                                                    sx={{ ml: 1, textTransform: 'none', fontSize: '0.75rem' }}
+                                                                    sx={{ ml: 1, textTransform: 'none', fontSize: '0.75rem', borderRadius: 4, fontWeight: 'bold' }}
                                                                 >
                                                                     適用
                                                                 </Button>

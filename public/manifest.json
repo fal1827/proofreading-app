@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "自動校閲Webアプリ (Side Panel 版)",
+  "version": "1.0.0",
+  "description": "ブラウザのテキストを直接校閲するための拡張機能",
+  "permissions": ["sidePanel", "activeTab", "contextMenus"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "校閲サイドパネルを開く"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
